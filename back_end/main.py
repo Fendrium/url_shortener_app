@@ -76,8 +76,8 @@ def get_url_info(secret_key: str, request: Request, db: Session = Depends(get_db
 
 
 @app.delete("/admin/{secret_key}")
-def delete_url(secret_key:str, request: Request, db: Session = Depends(get_db)):
-    if db_url := crud.deactivate_db_url_by_secret_key(db, secret_key=secret_key)
+def delete_url(secret_key: str, request: Request, db: Session = Depends(get_db)):
+    if db_url := crud.deactivate_db_url_by_secret_key(db, secret_key=secret_key):
         message = f"Successfully deleted shorted URL for '{db_url.target_url}'"
         return {"detail": message}
     else:
