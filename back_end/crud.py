@@ -2,6 +2,10 @@ from sqlalchemy.orm import Session
 from . import keygen, models, schemas
 
 
+def get_db_all_urls(db: Session):
+    return db.query(models.URL).filter(models.URL.is_active).all()
+
+
 def get_db_url_by_key(db: Session, url_key: str) -> models.URL | None:
     return (
         db.query(models.URL)
@@ -40,6 +44,15 @@ def deactivate_db_url_by_secret_key(db: Session, secret_key: str):
     db_url = get_db_url_by_secret_key(db, secret_key)
     if db_url:
         db_url.is_active = False
+        db.commit()
+        db.refresh(db_url)
+    return db_url
+
+
+def activate_db_url_by_secret_key(db: Session, secret_key: str):
+    db_url = get_db_url_by_secret_key(db, secret_key)
+    if db_url:
+        db_url.is_active = True
         db.commit()
         db.refresh(db_url)
     return db_url

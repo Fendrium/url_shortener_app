@@ -1,6 +1,7 @@
 import validators
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from starlette.datastructures import URL
 
@@ -14,6 +15,15 @@ def raise_bad_request(message):
 
 
 app = FastAPI()
+
+origins = ["http://localhost:5174"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 models.Base.metadata.create_all(bind=engine)
 
 
@@ -42,7 +52,7 @@ def get_admin_info(db_url: models.URL) -> schemas.URLInfo:
 
 @app.get("/")
 def read_root():
-    return "Welcome to the URL shotener API"
+    return "Welcome to the URL shortener API"
 
 
 @app.post("/url", response_model=schemas.URLInfo)
@@ -52,6 +62,14 @@ def create_url(url: schemas.URLBase, db: Session = Depends(get_db)):
     db_url = crud.create_db_url(db=db, url=url)
 
     return get_admin_info(db_url)
+
+
+@app.get("/urls")
+def get_all_urls(request: Request, db: Session = Depends(get_db)):
+    if db_urls := crud.get_db_all_urls(db=db):
+        return db_urls
+    else:
+        raise_not_found(request)
 
 
 @app.get("/{url_key}")
@@ -79,6 +97,15 @@ def get_url_info(secret_key: str, request: Request, db: Session = Depends(get_db
 def delete_url(secret_key: str, request: Request, db: Session = Depends(get_db)):
     if db_url := crud.deactivate_db_url_by_secret_key(db, secret_key=secret_key):
         message = f"Successfully deleted shorted URL for '{db_url.target_url}'"
+        return {"detail": message}
+    else:
+        raise_not_found(request)
+
+
+@app.post("/admin/{secret_key}")
+def activate_url(secret_key: str, request: Request, db: Session = Depends(get_db)):
+    if db_url := crud.deactivate_db_url_by_secret_key(db, secret_key=secret_key):
+        message = f"Successfully activated shorted URL for '{db_url.target_url}'"
         return {"detail": message}
     else:
         raise_not_found(request)

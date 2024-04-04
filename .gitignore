@@ -1,5 +1,6 @@
 .venv
 .env
 .shortener.db
+.vscode
 
 __pycache__/
